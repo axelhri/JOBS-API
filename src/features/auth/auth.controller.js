@@ -3,9 +3,23 @@ import * as usersService from '../users/users.service.js';
 import { UnauthenticatedError } from '../../errors/index.js';
 
 const register = async (req, res) => {
-  const user = await usersService.create(req.body);
-  const token = user.createAccessToken();
-  res.status(StatusCodes.CREATED).json({ user, token });
+  const { username, email, password } = req.body;
+
+  try {
+      let user = await User.findOne({ email });
+      if (user) {
+          return res.status(400).json({ message: 'Cet utilisateur existe déjà' });
+      }
+
+      user = new User({ username, email, password });
+      await user.save();
+
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+      res.status(201).json({ token });
+  } catch (error) {
+      res.status(500).json({ message: 'Erreur serveur' });
+  }
 };
 
 const login = async (req, res) => {
